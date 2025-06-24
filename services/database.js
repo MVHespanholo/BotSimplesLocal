@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import fs from 'fs';
+import fs   from 'fs';
 import path from 'path';
 
 const dbPath = path.join('db', 'chat.db');
@@ -8,25 +8,40 @@ const db = new Database(dbPath);
 
 db.exec(`
 CREATE TABLE IF NOT EXISTS messages (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  chatId TEXT,
-  role   TEXT,      -- 'user' | 'assistant'
+  id      INTEGER PRIMARY KEY AUTOINCREMENT,
+  chatId  TEXT,
+  role    TEXT,      -- 'user' | 'assistant'
   content TEXT,
-  ts     DATETIME DEFAULT CURRENT_TIMESTAMP
+  ts      DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 `);
 
 export function saveMessage(chatId, role, content) {
-  db.prepare('INSERT INTO messages (chatId, role, content) VALUES (?, ?, ?)')
-    .run(chatId, role, content);
+  db.prepare(
+    'INSERT INTO messages (chatId, role, content) VALUES (?, ?, ?)',
+  ).run(chatId, role, content);
 }
 
 export function getLastMessages(chatId, limit = 10) {
-  return db.prepare(`
-    SELECT role, content
-    FROM messages
-    WHERE chatId = ?
-    ORDER BY id DESC
-    LIMIT ?
-  `).all(chatId, limit).reverse();
+  return db
+    .prepare(
+      `SELECT role, content
+       FROM messages
+       WHERE chatId = ?
+       ORDER BY id DESC
+       LIMIT ?`,
+    )
+    .all(chatId, limit)
+    .reverse();
+}
+
+export function hasMessages(chatId) {
+  const row = db
+    .prepare('SELECT 1 FROM messages WHERE chatId = ? LIMIT 1')
+    .get(chatId);
+  return !!row;
+}
+
+export function clearHistory(chatId) {
+  db.prepare('DELETE FROM messages WHERE chatId = ?').run(chatId);
 }
